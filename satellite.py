@@ -25,22 +25,8 @@ author: Timothy Vandenbrande
 short_description: satellite/katello automation
 description:
     - This module allows you to execute different actions on the Satellite/Katello through its API.
-    - It allows you to list:
-        - organisations
-        - contentviews
-        - environments
-        - versions
-        - actions
-        - systems
-        - erratas
-    - It allows you to give info about:
-        - an organisation
-        - a contentview
-        - an environment
-        - a version
-        - get a versionlist
-        - an action
-        - a system
+    - It allows you to list organisations, contentviews, environments, versions, actions, systems and erratas
+    - It allows you to give info about an organisation, a contentview, an environment, a version, get a versionlist, an action or a system
     - Publish a contentview.
     - Promote environments in a contentview.
     - Remove versions from a contentview.
@@ -80,13 +66,7 @@ options:
     organisation:
         description:
             - the organisation your action applies on
-            - required when action:
-                - list
-                - info
-                - promote
-                - publish
-                - delete
-                - update
+            - required when I(action==list), I(action==info), I(action==promote), I(action==publish), I(action==delete) or I(action==update)
         required: false
     contentview:
         description:
