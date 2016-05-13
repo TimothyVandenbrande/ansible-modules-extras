@@ -48,22 +48,6 @@ version_added: "2.2"
 requirements:
     - requests
 options:
-
-            action         = dict(default='list', choices=['list', 'info', 'promote', 'publish', 'delete', 'update']),
-            user           = dict(required=True),
-            password       = dict(required=True),
-            server         = dict(required=True),
-            ssl_verify     = dict(default=True, type='bool'),
-            actiontype     = dict(choices=['organisation', 'contentview', 'environment', 'version', 'versionlist', 'action', 'system', 'errata']),
-            organisation   = dict(),
-            contentview    = dict(),
-            version        = dict(),
-            environment    = dict(),
-            actionid       = dict(),
-            system         = dict(),
-            releaseversion = dict(),
-            force          = dict(default=False, type='bool')
-
     user:
         description:
             - the user to authenticate with
