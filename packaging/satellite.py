@@ -34,13 +34,13 @@ description:
         - systems
         - erratas
     - It allows you to give info about:
-        - organisations
-        - contentviews
-        - environments
-        - versions
-        - versionlist
-        - actions
-        - systems
+        - an organisation
+        - a contentview
+        - an environment
+        - a version
+        - get a versionlist
+        - an action
+        - a system
     - Publish a contentview.
     - Promote environments in a contentview.
     - Remove versions from a contentview.
@@ -117,7 +117,7 @@ options:
 
 RETURN = '''
 action:
-    description: Returns all of the VMs variables and execution.
+    description: Returns the result of the action.
     returned: always
     type: dict
     sample: {
