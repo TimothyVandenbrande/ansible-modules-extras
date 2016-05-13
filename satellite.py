@@ -76,7 +76,7 @@ options:
             - on which you wish to perform your action.
         default: "list"
         required: false
-        choices=['organisation', 'contentview', 'environment', 'version', 'versionlist', 'action', 'system', 'errata']
+        choices: ['organisation', 'contentview', 'environment', 'version', 'versionlist', 'action', 'system', 'errata']
     organisation:
         description:
             - the organisation your action applies on
