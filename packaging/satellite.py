@@ -235,11 +235,6 @@ try:
 except ImportError:
     import simplejson as json
 
-try:
-    import requests
-    HAS_REQUESTS = True
-except ImportError:
-    HAS_REQUESTS = False
 
 SAT_FAILED = 1
 SAT_SUCCESS = 0
@@ -861,9 +856,6 @@ def main():
         ),
     )
     module.params['force_basic_auth'] = True
-
-    if not HAS_REQUESTS:
-        module.fail_json(msg='The `requests` module is not importable. Check the requirements.')
 
     rc = SAT_SUCCESS
     try:
