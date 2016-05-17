@@ -254,67 +254,97 @@ class SatConn(object):
         self.password = module.params['url_password']
         self.ssl_verify = module.params['validate_certs']
 
+        ret = self.test()
+        module.fail_json(msg=ret)
+
         try:
             self.test()
-        except:
-            raise Exception("Failed to connect to the satellite.")
+        except Exception as e:
+            raise Exception(e)
 
     def get_json(self, location):
         """
         Performs a GET using the passed URL location
         """
 
-        result = requests.get(
-            location,
-            auth=(self.username, self.password), 
-            verify=self.ssl_verify
+        response, info = fetch_url(
+            self.module,
+            location
         )
-        return result.json()
+
+        if info['status'] == 200:
+            result = response.read()
+            jsonresult = json.loads(result)
+            response.close()
+            return jsonresult
+        else:
+            return info
 
     def post_json(self, location, json_data):
         """
         Performs a POST and passes the data to the URL location
         """
 
-        result = requests.post(
+        response, info = fetch_url(
+            self.module,
             location,
             data=json_data,
-            auth=(self.username, self.password),
-            verify=self.ssl_verify,
-            headers=self.post_headers
+            headers=self.post_headers,
+            method='POST'
         )
-        return result.json()
+
+        if info['status'] == 200:
+            result = response.read()
+            jsonresult = json.loads(result)
+            response.close()
+            return jsonresult
+        else:
+            return info
 
     def put_json(self, location, json_data):
         """
         Performs a POST and passes the data to the URL location
         """
 
-        result = requests.put(
+        response, info = fetch_url(
+            self.module,
             location,
             data=json_data,
-            auth=(self.username, self.password),
-            verify=self.ssl_verify,
-            headers=self.post_headers
+            headers=self.post_headers,
+            method='PUT'
         )
-        return result.json()
+
+        if info['status'] == 200:
+            result = response.read()
+            jsonresult = json.loads(result)
+            response.close()
+            return jsonresult
+        else:
+            return info
 
     def delete_json(self, location, json_data):
         """
         Performs a POST and passes the data to the URL location
         """
-
-        result = requests.delete(
+        
+        response, info = fetch_url(
+            self.module,
             location,
             data=json_data,
-            auth=(self.username, self.password),
-            verify=self.ssl_verify,
-            headers=self.post_headers
+            headers=self.post_headers,
+            method='DELETE'
         )
-        return result.json()
+
+        if info['status'] == 200:
+            result = response.read()
+            jsonresult = json.loads(result)
+            response.close()
+            return jsonresult
+        else:
+            return info
 
     def test(self):
-        self.get_json(self.kat_api)
+        return self.get_json(self.kat_api)
         self.find_organisation(0)
 
     def find_action(self, actionid):
