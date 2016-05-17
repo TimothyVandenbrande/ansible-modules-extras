@@ -326,7 +326,7 @@ class SatConn(object):
         """
         Performs a POST and passes the data to the URL location
         """
-        
+
         response, info = fetch_url(
             self.module,
             location,
