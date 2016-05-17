@@ -91,6 +91,11 @@ options:
         description:
             - the releaseversion your action applies on
         required: false
+    timeout:
+        description:
+            - sets the timeout for the requests
+        default: 300
+        required: false
     force:
         description:
             - a force uption for promote/delete action
@@ -223,6 +228,7 @@ import datetime
 import time
 import os
 import logging
+import base64
 from time import sleep
 try:
     import json
@@ -249,13 +255,18 @@ class SatConn(object):
         self.katello_api = "%s/katello/api/" % url
         self.sat_api = "%s/api/v2/" % url
         self.foreman_tasks_api = "%s/foreman_tasks/api/tasks/" % url
-        self.post_headers = {'Content-Type': 'application/json'}
         self.username = module.params['url_username']
         self.password = module.params['url_password']
         self.ssl_verify = module.params['validate_certs']
-
-        ret = self.test()
-        module.fail_json(msg=ret)
+        self.timeout = module.params['timeout']
+        auth = base64.encodestring('%s:%s' % (self.username, self.password)).replace('\n', '')
+        self.auth_headers = {
+            'Authorization': 'Basic %s' % auth,
+        }
+        self.post_headers = {
+            'Authorization': 'Basic %s' % auth,
+            'Content-Type': 'application/json'
+        }
 
         try:
             self.test()
@@ -269,7 +280,9 @@ class SatConn(object):
 
         response, info = fetch_url(
             self.module,
-            location
+            location,
+            headers=self.auth_headers,
+            timeout=self.timeout
         )
 
         if info['status'] == 200:
@@ -278,7 +291,7 @@ class SatConn(object):
             response.close()
             return jsonresult
         else:
-            return info
+            raise Exception(info)
 
     def post_json(self, location, json_data):
         """
@@ -290,7 +303,8 @@ class SatConn(object):
             location,
             data=json_data,
             headers=self.post_headers,
-            method='POST'
+            method='POST',
+            timeout=self.timeout
         )
 
         if info['status'] == 200:
@@ -299,7 +313,7 @@ class SatConn(object):
             response.close()
             return jsonresult
         else:
-            return info
+            raise Exception(info)
 
     def put_json(self, location, json_data):
         """
@@ -311,7 +325,8 @@ class SatConn(object):
             location,
             data=json_data,
             headers=self.post_headers,
-            method='PUT'
+            method='PUT',
+            timeout=self.timeout
         )
 
         if info['status'] == 200:
@@ -320,7 +335,7 @@ class SatConn(object):
             response.close()
             return jsonresult
         else:
-            return info
+            raise Exception(info)
 
     def delete_json(self, location, json_data):
         """
@@ -332,7 +347,8 @@ class SatConn(object):
             location,
             data=json_data,
             headers=self.post_headers,
-            method='DELETE'
+            method='DELETE',
+            timeout=self.timeout
         )
 
         if info['status'] == 200:
@@ -341,10 +357,10 @@ class SatConn(object):
             response.close()
             return jsonresult
         else:
-            return info
+            raise Exception(info)
 
     def test(self):
-        return self.get_json(self.kat_api)
+        self.get_json(self.kat_api)
         self.find_organisation(0)
 
     def find_action(self, actionid):
@@ -374,7 +390,7 @@ class SatConn(object):
 
     def publish_contentview(self, cvid):
         rinfo = self.post_json(
-            self.kat_api + "/content_views/" + str(cvid) + "/publish",
+            self.kat_api + "content_views/" + str(cvid) + "/publish",
             json.dumps({"id": cvid, })
         )
         return rinfo
@@ -403,7 +419,7 @@ class SatConn(object):
 
     def delete_version(self, revid):
         rinfo = self.delete_json(
-            self.kat_api + "/content_view_versions/" + str(revid),
+            self.kat_api + "content_view_versions/" + str(revid),
             json.dumps({
                 "id": revid,
             })
@@ -488,7 +504,7 @@ class Satellite(object):
         return results
 
     def publish_contentview(self, contentview):
-        cvid = self.get_contentview(contentview)['id']
+        cvid = self.get_contentview(contentview).get('id', None)
         rinfo = self.conn.publish_contentview(cvid)
 
         pending = True
@@ -840,9 +856,11 @@ def main():
             actionid       = dict(),
             system         = dict(),
             releaseversion = dict(),
+            timeout        = dict(default=300),
             force          = dict(default=False, type='bool')
         ),
     )
+    module.params['force_basic_auth'] = True
 
     if not HAS_REQUESTS:
         module.fail_json(msg='The `requests` module is not importable. Check the requirements.')
