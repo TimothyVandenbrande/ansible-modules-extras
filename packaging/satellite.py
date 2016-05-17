@@ -264,7 +264,11 @@ class SatConn(object):
         Performs a GET using the passed URL location
         """
 
-        result = requests.get(location, auth=(self.username, self.password), verify=self.ssl_verify)
+        result = requests.get(
+            location,
+            auth=(self.username, self.password), 
+            verify=self.ssl_verify
+        )
         return result.json()
 
     def post_json(self, location, json_data):
@@ -277,7 +281,8 @@ class SatConn(object):
             data=json_data,
             auth=(self.username, self.password),
             verify=self.ssl_verify,
-            headers=self.post_headers)
+            headers=self.post_headers
+        )
         return result.json()
 
     def put_json(self, location, json_data):
@@ -290,7 +295,8 @@ class SatConn(object):
             data=json_data,
             auth=(self.username, self.password),
             verify=self.ssl_verify,
-            headers=self.post_headers)
+            headers=self.post_headers
+        )
         return result.json()
 
     def delete_json(self, location, json_data):
@@ -303,15 +309,13 @@ class SatConn(object):
             data=json_data,
             auth=(self.username, self.password),
             verify=self.ssl_verify,
-            headers=self.post_headers)
+            headers=self.post_headers
+        )
         return result.json()
 
     def test(self):
-        result = requests.get(self.kat_api + "organizations/", auth=(self.username, self.password), verify=self.ssl_verify)
-        if result.get('error', None):
-            return False
-        else:
-            return True
+        self.get_json(self.kat_api)
+        self.find_organisation(0)
 
     def find_action(self, actionid):
         return self.get_json(self.foreman_tasks_api + str(actionid))
