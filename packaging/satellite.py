@@ -226,12 +226,6 @@ try:
 except ImportError:
     import simplejson as json
 
-try:
-    import requests
-    HAS_REQUESTS = True
-except ImportError:
-    HAS_REQUESTS = False
-
 SAT_FAILED = 1
 SAT_SUCCESS = 0
 SAT_UNAVAILABLE = 2
@@ -247,8 +241,8 @@ class SatConn(object):
         self.sat_api = "%s/api/v2/" % url
         self.foreman_tasks_api = "%s/foreman_tasks/api/tasks/" % url
         self.post_headers = {'Content-Type': 'application/json'}
-        self.username = module.params['user']
-        self.password = module.params['password']
+        self.username = module.params['url_username']
+        self.password = module.params['url_password']
         self.ssl_verify = module.params['ssl_verify']
 
         try:
@@ -791,8 +785,8 @@ def main():
     module = AnsibleModule(
         argument_spec = dict(
             action         = dict(default='list', choices=['list', 'info', 'promote', 'publish', 'delete', 'update']),
-            user           = dict(required=True),
-            password       = dict(required=True),
+            url_username   = dict(required=True, aliases=['user']),
+            url_password   = dict(required=True, aliases=['password']),
             server         = dict(required=True),
             ssl_verify     = dict(default=True, type='bool'),
             actiontype     = dict(choices=['organisation', 'contentview', 'environment', 'version', 'versionlist', 'action', 'system', 'errata']),
@@ -826,6 +820,7 @@ def main():
 
 # import module snippets
 from ansible.module_utils.basic import *
+from ansible.module_utils.urls import *
 
 if __name__ == '__main__':
     main()
