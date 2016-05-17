@@ -31,8 +31,6 @@ description:
     - Promote environments in a contentview.
     - Remove versions from a contentview.
 version_added: "2.2"
-requirements:
-    - requests
 options:
     url_username:
         description:
