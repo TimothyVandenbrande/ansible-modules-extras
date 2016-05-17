@@ -801,11 +801,6 @@ def main():
         ),
     )
 
-    if not HAS_REQUESTS:
-        module.fail_json(
-            msg='The `requests` module is not importable. Check the requirements.'
-        )
-
     rc = SAT_SUCCESS
     try:
         rc, result = core(module)
