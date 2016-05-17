@@ -263,7 +263,7 @@ class SatConn(object):
 
         try:
             self.test()
-        except Exception as e:
+        except Exception, e:
             raise Exception(e)
 
     def get_json(self, location):
