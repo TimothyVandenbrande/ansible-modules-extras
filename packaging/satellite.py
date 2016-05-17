@@ -34,23 +34,26 @@ version_added: "2.2"
 requirements:
     - requests
 options:
-    user:
+    url_username:
         description:
             - the user to authenticate with
         required: true
-    password:
+        aliases: ['user']
+    url_password:
         description:
             - the password to authenticate the user with.
         required: true
+        aliases: ['password']
     server:
         description:
             - the name/ip of your satellite
         required: true
-    ssl_verify:
+    validate_certs:
         description:
             - boolean switch to make a secure or insecure connection to the server.
         default: false
         required: false
+        aliases: ['ssl_verify']
     action:
         description:
             - what you wish to do.
@@ -226,6 +229,12 @@ try:
 except ImportError:
     import simplejson as json
 
+try:
+    import requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+
 SAT_FAILED = 1
 SAT_SUCCESS = 0
 SAT_UNAVAILABLE = 2
@@ -243,7 +252,7 @@ class SatConn(object):
         self.post_headers = {'Content-Type': 'application/json'}
         self.username = module.params['url_username']
         self.password = module.params['url_password']
-        self.ssl_verify = module.params['ssl_verify']
+        self.ssl_verify = module.params['validate_certs']
 
         try:
             self.test()
@@ -298,8 +307,8 @@ class SatConn(object):
         return result.json()
 
     def test(self):
-        org = self.get_json(self.kat_api + "organizations/")
-        if org.get('error', None):
+        result = requests.get(self.kat_api + "organizations/", auth=(self.username, self.password), verify=self.ssl_verify)
+        if result.get('error', None):
             return False
         else:
             return True
@@ -788,7 +797,7 @@ def main():
             url_username   = dict(required=True, aliases=['user']),
             url_password   = dict(required=True, aliases=['password']),
             server         = dict(required=True),
-            ssl_verify     = dict(default=True, type='bool'),
+            validate_certs = dict(default=True, type='bool', aliases=['ssl_verify']),
             actiontype     = dict(choices=['organisation', 'contentview', 'environment', 'version', 'versionlist', 'action', 'system', 'errata']),
             organisation   = dict(),
             contentview    = dict(),
@@ -800,6 +809,9 @@ def main():
             force          = dict(default=False, type='bool')
         ),
     )
+
+    if not HAS_REQUESTS:
+        module.fail_json(msg='The `requests` module is not importable. Check the requirements.')
 
     rc = SAT_SUCCESS
     try:
