@@ -25,6 +25,8 @@ short_description: RHV/oVirt automation
 description:
     - Allows you to create/remove/update or powermanage virtual machines on a RHV/oVirt platform.
 version_added: "2.2"
+notes:
+    - This module supports REST API version 3 only.
 requirements:
     - ovirtsdk
 options:
