@@ -20,7 +20,7 @@
 DOCUMENTATION = '''
 ---
 module: rhvm
-author: Timothy Vandenbrande
+author: Timothy Vandenbrande (@TimothyVandenbrande)
 short_description: RHV/oVirt automation
 description:
     - Allows you to create/remove/update or powermanage virtual machines on a RHV/oVirt platform.
