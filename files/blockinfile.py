@@ -116,7 +116,7 @@ EXAMPLES = r"""
     dest: /etc/network/interfaces
     block: |
       iface eth0 inet static
-          address 192.168.0.1
+          address 192.0.2.23
           netmask 255.255.255.0
 
 - name: insert/update HTML surrounded by custom markers after <body> line
@@ -169,7 +169,7 @@ def write_changes(module, contents, dest):
             module.fail_json(msg='failed to validate: '
                                  'rc:%s error:%s' % (rc, err))
     if valid:
-        module.atomic_move(tmpfile, dest)
+        module.atomic_move(tmpfile, dest, unsafe_writes=module.params['unsafe_writes'])
 
 
 def check_file_attrs(module, changed, message):

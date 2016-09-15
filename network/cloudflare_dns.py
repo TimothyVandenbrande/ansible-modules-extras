@@ -32,6 +32,8 @@ DOCUMENTATION = '''
 ---
 module: cloudflare_dns
 author: "Michael Gruener (@mgruener)"
+requirements:
+   - "python >= 2.6"
 version_added: "2.1"
 short_description: manage Cloudflare DNS records
 description:
@@ -186,7 +188,7 @@ record:
             description: the record content (details depend on record type)
             returned: success
             type: string
-            sample: 192.168.100.20
+            sample: 192.0.2.91
         created_on:
             description: the record creation date
             returned: success

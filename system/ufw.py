@@ -153,6 +153,9 @@ ufw: rule=allow name=OpenSSH delete=yes
 # Deny all access to port 53:
 ufw: rule=deny port=53
 
+# Allow port range 60000-61000
+ufw: rule=allow port=60000:61000
+
 # Allow all access to tcp port 80:
 ufw: rule=allow port=80 proto=tcp
 
@@ -225,7 +228,7 @@ def main():
     if len(commands) < 1:
         module.fail_json(msg="Not any of the command arguments %s given" % commands)
 
-    if('interface' in params and 'direction' not in params):
+    if(params['interface'] is not None and params['direction'] is None):
       module.fail_json(msg="Direction must be specified when creating a rule on an interface")
 
     # Ensure ufw is available
@@ -260,10 +263,11 @@ def main():
             cmd.append([module.boolean(params['route']), 'route'])
             cmd.append([params['insert'], "insert %s" % params['insert']])
             cmd.append([value])
+            cmd.append([params['direction'], "%s" % params['direction']])
+            cmd.append([params['interface'], "on %s" % params['interface']])
             cmd.append([module.boolean(params['log']), 'log'])
 
-            for (key, template) in [('direction', "%s"      ), ('interface', "on %s"   ),
-                                    ('from_ip',   "from %s" ), ('from_port', "port %s" ),
+            for (key, template) in [('from_ip',   "from %s" ), ('from_port', "port %s" ),
                                     ('to_ip',     "to %s"   ), ('to_port',   "port %s" ),
                                     ('proto',     "proto %s"), ('app',       "app '%s'")]:
 

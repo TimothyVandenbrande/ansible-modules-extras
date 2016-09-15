@@ -108,6 +108,11 @@ def set_selection(module, pkg, question, vtype, value, unseen):
     if unseen:
         cmd.append('-u')
 
+    if vtype == 'boolean':
+        if value == 'True':
+            value = 'true'
+        elif value == 'False':
+            value = 'false'
     data = ' '.join([pkg, question, vtype, value])
 
     return module.run_command(cmd, data=data)
@@ -156,8 +161,14 @@ def main():
             prev = {question: prev[question]}
         else:
             prev[question] = ''
+        if module._diff:
+            after = prev.copy()
+            after.update(curr)
+            diff_dict = {'before': prev, 'after': after}
+        else:
+            diff_dict = {}
 
-        module.exit_json(changed=changed, msg=msg, current=curr, previous=prev)
+        module.exit_json(changed=changed, msg=msg, current=curr, previous=prev, diff=diff_dict)
 
     module.exit_json(changed=changed, msg=msg, current=prev)
 

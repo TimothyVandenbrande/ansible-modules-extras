@@ -29,6 +29,7 @@ env:
       cloud/amazon/ec2_vpc_route_table.py
       cloud/amazon/ec2_vpc_subnet_facts.py
       cloud/amazon/ec2_vpc_subnet.py
+      cloud/amazon/ec2_vpc_dhcp_options_facts.py
       cloud/amazon/ecs_cluster.py
       cloud/amazon/ecs_service_facts.py
       cloud/amazon/ecs_service.py
@@ -102,13 +103,10 @@ env:
       network/nmcli.py
       network/openvswitch_bridge.py
       network/openvswitch_port.py
-      notification/hipchat.py
       notification/irc.py
       notification/jabber.py
       notification/mail.py
-      notification/mqtt.py
-      notification/sns.py
-      notification/typetalk.py"
+      notification/mqtt.py"
 before_install:
   - git config user.name "ansible"
   - git config user.email "ansible@ansible.com"
@@ -117,10 +115,9 @@ install:
   - pip install git+https://github.com/ansible/ansible.git@devel#egg=ansible
   - pip install git+https://github.com/sivel/ansible-testing.git#egg=ansible_testing
 script:
-  - python2.4 -m compileall -fq -x 'cloud/|monitoring/zabbix.*\.py|/dnf\.py|/layman\.py|/maven_artifact\.py|clustering/(consul.*|znode)\.py|notification/pushbullet\.py|database/influxdb/influxdb.*\.py|database/mssql/mssql_db\.py|/letsencrypt\.py|network/f5/bigip.*\.py|bmc/ipmi/.*\.py' .
+  - python2.4 -m compileall -fq -x 'cloud/|monitoring/zabbix.*\.py|/dnf\.py|/layman\.py|/maven_artifact\.py|clustering/(consul.*|znode)\.py|notification/pushbullet\.py|database/influxdb/influxdb.*\.py|database/mssql/mssql_db\.py|/letsencrypt\.py|network/f5/bigip.*\.py|remote_management/ipmi/.*\.py|cloud/atomic/atomic_.*\.py|univention/.*\.py' .
   - python2.6 -m compileall -fq .
   - python2.7 -m compileall -fq .
-  - python3.4 -m compileall -fq . -x $(echo "$PY3_EXCLUDE_LIST"| tr ' ' '|')
   - python3.5 -m compileall -fq . -x $(echo "$PY3_EXCLUDE_LIST"| tr ' ' '|')
   - ansible-validate-modules .
   #- ./test-docs.sh extras

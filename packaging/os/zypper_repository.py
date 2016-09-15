@@ -59,12 +59,13 @@ options:
         required: false
         default: "no"
         choices: [ "yes", "no" ]
-    refresh:
+    autorefresh:
         description:
             - Enable autorefresh of the repository.
         required: false
         default: "yes"
         choices: [ "yes", "no" ]
+        aliases: [ "refresh" ]
     priority:
         description:
             - Set priority of repository. Packages will always be installed
@@ -80,6 +81,26 @@ options:
         default: "no"
         choices: [ "yes", "no" ]
         version_added: "2.1"
+    auto_import_keys:
+        description:
+            - Automatically import the gpg signing key of the new or changed repository. 
+            - Has an effect only if state is I(present). Has no effect on existing (unchanged) repositories or in combination with I(absent).
+            - Implies runrefresh.
+        required: false
+        default: "no"
+        choices: ["yes", "no"]
+        version_added: "2.2"
+    runrefresh:
+        description:
+            - Refresh the package list of the given repository.
+            - Can be used with repo=* to refresh all repositories.
+        required: false
+        default: "no"
+        choices: ["yes", "no"]
+        version_added: "2.2"
+
+
+
 requirements: 
     - "zypper >= 1.0  # included in openSuSE >= 11.1 or SuSE Linux Enterprise Server/Desktop >= 11.0"
 '''
@@ -93,15 +114,32 @@ EXAMPLES = '''
 
 # Add python development repository
 - zypper_repository: repo=http://download.opensuse.org/repositories/devel:/languages:/python/SLE_11_SP3/devel:languages:python.repo
+
+# Refresh all repos
+- zypper_repository: repo=* runrefresh=yes
+
+# Add a repo and add it's gpg key
+- zypper_repository: repo=http://download.opensuse.org/repositories/systemsmanagement/openSUSE_Leap_42.1/ auto_import_keys=yes
+ 
+# Force refresh of a repository
+- zypper_repository: repo=http://my_internal_ci_repo/repo name=my_ci_repo state=present runrefresh=yes
 '''
 
 REPO_OPTS = ['alias', 'name', 'priority', 'enabled', 'autorefresh', 'gpgcheck']
 
 from distutils.version import LooseVersion
 
+def _get_cmd(*args):
+    """Combines the non-interactive zypper command with arguments/subcommands"""
+    cmd = ['/usr/bin/zypper', '--quiet', '--non-interactive']
+    cmd.extend(args)
+
+    return cmd
+
+
 def _parse_repos(module):
-    """parses the output of zypper -x lr and return a parse repo dictionary"""
-    cmd = ['/usr/bin/zypper', '-x', 'lr']
+    """parses the output of zypper --xmlout repos and return a parse repo dictionary"""
+    cmd = _get_cmd('--xmlout', 'repos')
 
     from xml.dom.minidom import parseString as parseXML
     rc, stdout, stderr = module.run_command(cmd, check_rc=False)
@@ -121,14 +159,10 @@ def _parse_repos(module):
     elif rc == 6:
         return []
     else:
-        d = { 'zypper_exit_code': rc }
-        if stderr:
-            d['stderr'] = stderr
-        if stdout:
-            d['stdout'] = stdout
-        module.fail_json(msg='Failed to execute "%s"' % " ".join(cmd), **d)
+        module.fail_json(msg='Failed to execute "%s"' % " ".join(cmd), rc=rc, stdout=stdout, stderr=stderr)
 
 def _repo_changes(realrepo, repocmp):
+    "Check whether the 2 given repos have different settings."
     for k in repocmp:
         if repocmp[k] and k not in realrepo:
             return True
@@ -144,6 +178,13 @@ def _repo_changes(realrepo, repocmp):
     return False
 
 def repo_exists(module, repodata, overwrite_multiple):
+    """Check whether the repository already exists.
+
+        returns (exists, mod, old_repos)
+            exists: whether a matching (name, URL) repo exists
+            mod: whether there are changes compared to the existing repo
+            old_repos: list of matching repos
+    """
     existing_repos = _parse_repos(module)
 
     # look for repos that have matching alias or url to the one searched
@@ -171,9 +212,10 @@ def repo_exists(module, repodata, overwrite_multiple):
             module.fail_json(msg=errmsg)
 
 
-def modify_repo(module, repodata, old_repos, zypper_version, warnings):
+def addmodify_repo(module, repodata, old_repos, zypper_version, warnings):
+    "Adds the repo, removes old repos before, that would conflict."
     repo = repodata['url']
-    cmd = ['/usr/bin/zypper', 'ar', '--check']
+    cmd = _get_cmd('addrepo', '--check')
     if repodata['name']:
         cmd.extend(['--name', repodata['name']])
 
@@ -212,24 +254,15 @@ def modify_repo(module, repodata, old_repos, zypper_version, warnings):
             remove_repo(module, oldrepo['url'])
 
     rc, stdout, stderr = module.run_command(cmd, check_rc=False)
-    changed = rc == 0
-    if rc == 0:
-        changed = True
-    else:
-        if stderr:
-            module.fail_json(msg=stderr)
-        else:
-            module.fail_json(msg=stdout)
-
-    return changed
+    return rc, stdout, stderr
 
 
 def remove_repo(module, repo):
-    cmd = ['/usr/bin/zypper', 'rr', repo]
+    "Removes the repo."
+    cmd = _get_cmd('removerepo', repo)
 
     rc, stdout, stderr = module.run_command(cmd, check_rc=True)
-    changed = rc == 0
-    return changed
+    return rc, stdout, stderr
 
 
 def get_zypper_version(module):
@@ -238,14 +271,16 @@ def get_zypper_version(module):
         return LooseVersion('1.0')
     return LooseVersion(stdout.split()[1])
 
+def runrefreshrepo(module, auto_import_keys=False, shortname=None):
+    "Forces zypper to refresh repo metadata."
+    cmd = _get_cmd('refresh', '--force')
+    if auto_import_keys:
+        cmd.append('--gpg-auto-import-keys')
+    if shortname is not None:
+        cmd.extend(['-r', shortname])
 
-def fail_if_rc_is_null(module, rc, stdout, stderr):
-    if rc != 0:
-        #module.fail_json(msg=stderr if stderr else stdout)
-        if stderr:
-            module.fail_json(msg=stderr)
-        else:
-            module.fail_json(msg=stdout)
+    rc, stdout, stderr = module.run_command(cmd, check_rc=True)
+    return rc, stdout, stderr
 
 
 def main():
@@ -254,20 +289,25 @@ def main():
             name=dict(required=False),
             repo=dict(required=False),
             state=dict(choices=['present', 'absent'], default='present'),
+            runrefresh=dict(required=False, default='no', type='bool'),
             description=dict(required=False),
             disable_gpg_check = dict(required=False, default=False, type='bool'),
-            refresh = dict(required=False, default=True, type='bool'),
+            autorefresh = dict(required=False, default=True, type='bool', aliases=['refresh']),
             priority = dict(required=False, type='int'),
             enabled = dict(required=False, default=True, type='bool'),
             overwrite_multiple = dict(required=False, default=False, type='bool'),
+            auto_import_keys = dict(required=False, default=False, type='bool'),
         ),
         supports_check_mode=False,
+        required_one_of = [['state','runrefresh']],
     )
 
     repo = module.params['repo']
     alias = module.params['name']
     state = module.params['state']
     overwrite_multiple = module.params['overwrite_multiple']
+    auto_import_keys = module.params['auto_import_keys']
+    runrefresh = module.params['runrefresh']
 
     zypper_version = get_zypper_version(module)
     warnings = []  # collect warning messages for final output
@@ -287,7 +327,7 @@ def main():
         repodata['gpgcheck'] = '0'
     else:
         repodata['gpgcheck'] = '1'
-    if module.params['refresh']:
+    if module.params['autorefresh']:
         repodata['autorefresh'] = '1'
     else:
         repodata['autorefresh'] = '0'
@@ -296,6 +336,13 @@ def main():
         module.exit_json(changed=False, repodata=repodata, state=state)
 
     # Check run-time module parameters
+    if repo == '*' or alias == '*':
+        if runrefresh:
+            runrefreshrepo(module, auto_import_keys)
+            module.exit_json(changed=False, runrefresh=True)
+        else:
+            module.fail_json(msg='repo=* can only be used with the runrefresh option.')
+
     if state == 'present' and not repo:
         module.fail_json(msg='Module option state=present requires repo')
     if state == 'absent' and not repo and not alias:
@@ -310,18 +357,28 @@ def main():
 
     exists, mod, old_repos = repo_exists(module, repodata, overwrite_multiple)
 
+    if repo:
+        shortname = repo
+    else:
+        shortname = alias
+
     if state == 'present':
         if exists and not mod:
+            if runrefresh:
+                runrefreshrepo(module, auto_import_keys, shortname)
             exit_unchanged()
-        changed = modify_repo(module, repodata, old_repos, zypper_version, warnings)
+        rc, stdout, stderr = addmodify_repo(module, repodata, old_repos, zypper_version, warnings)
+        if rc == 0 and (runrefresh or auto_import_keys):
+            runrefreshrepo(module, auto_import_keys, shortname)
     elif state == 'absent':
         if not exists:
             exit_unchanged()
-        if not repo:
-            repo=alias
-        changed = remove_repo(module, repo)
+        rc, stdout, stderr = remove_repo(module, shortname)
 
-    module.exit_json(changed=changed, repodata=repodata, state=state, warnings=warnings)
+    if rc == 0:
+        module.exit_json(changed=True, repodata=repodata, state=state, warnings=warnings)
+    else:
+        module.fail_json(msg="Zypper failed with rc %s" % rc, rc=rc, stdout=stdout, stderr=stderr, repodata=repodata, state=state, warnings=warnings)
 
 # import module snippets
 from ansible.module_utils.basic import *

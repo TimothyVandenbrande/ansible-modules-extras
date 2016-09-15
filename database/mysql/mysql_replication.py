@@ -108,8 +108,8 @@ EXAMPLES = '''
 # Get master binlog file name and binlog position
 - mysql_replication: mode=getmaster
 
-# Change master to master server 192.168.1.1 and use binary log 'mysql-bin.000009' with position 4578
-- mysql_replication: mode=changemaster master_host=192.168.1.1 master_log_file=mysql-bin.000009 master_log_pos=4578
+# Change master to master server 192.0.2.1 and use binary log 'mysql-bin.000009' with position 4578
+- mysql_replication: mode=changemaster master_host=192.0.2.1 master_log_file=mysql-bin.000009 master_log_pos=4578
 
 # Check slave status using port 3308
 - mysql_replication: mode=getslave login_host=ansible.example.com login_port=3308
@@ -258,22 +258,25 @@ def main():
             module.fail_json(msg="unable to find %s. Exception message: %s" % (config_file, e))
 
     if mode in "getmaster":
-        masterstatus = get_master_status(cursor)
-        try:
-            module.exit_json( **masterstatus )
-        except TypeError:
-            module.fail_json(msg="Server is not configured as mysql master")
+        status = get_master_status(cursor)
+        if not isinstance(status, dict):
+            status = dict(Is_Master=False, msg="Server is not configured as mysql master")
+        else:
+            status['Is_Master'] = True
+        module.exit_json(**status)
 
     elif mode in "getslave":
-        slavestatus = get_slave_status(cursor)
-        try:
-            module.exit_json( **slavestatus )
-        except TypeError, e:
-            module.fail_json(msg="Server is not configured as mysql slave. ERROR: %s" % e)
+        status = get_slave_status(cursor)
+        if not isinstance(status, dict):
+            status = dict(Is_Slave=False, msg="Server is not configured as mysql slave")
+        else:
+            status['Is_Slave'] = True
+        module.exit_json(**status)
 
     elif mode in "changemaster":
         chm=[]
         chm_params = {}
+        result = {}
         if master_host:
             chm.append("MASTER_HOST=%(master_host)s")
             chm_params['master_host'] = master_host
@@ -322,9 +325,12 @@ def main():
             chm.append("MASTER_AUTO_POSITION = 1")
         try:
             changemaster(cursor, chm, chm_params)
+        except MySQLdb.Warning, e:
+                result['warning'] = str(e)
         except Exception, e:
             module.fail_json(msg='%s. Query == CHANGE MASTER TO %s' % (e, chm))
-        module.exit_json(changed=True)
+        result['changed']=True
+        module.exit_json(**result)
     elif mode in "startslave":
         started = start_slave(cursor)
         if started is True:

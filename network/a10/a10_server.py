@@ -78,6 +78,25 @@ options:
     required: false
     default: present
     choices: ['present', 'absent']
+  write_config:
+    description:
+      - If C(yes), any changes will cause a write of the running configuration
+        to non-volatile memory. This will save I(all) configuration changes,
+        including those that may have been made manually or through other modules,
+        so care should be taken when specifying C(yes).
+    required: false
+    version_added: 2.2
+    default: "no"
+    choices: ["yes", "no"]
+  validate_certs:
+    description:
+      - If C(no), SSL certificates will not be validated. This should only be used
+        on personally controlled devices using self-signed certificates.
+    required: false
+    version_added: 2.2
+    default: 'yes'
+    choices: ['yes', 'no']
+
 '''
 
 EXAMPLES = '''
@@ -257,8 +276,8 @@ def main():
         else:
             result = dict(msg="the server was not present")
 
-    # if the config has changed, or we want to force a save, save the config unless otherwise requested
-    if changed or write_config:
+    # if the config has changed, save the config unless otherwise requested
+    if changed and write_config:
         write_result = axapi_call(module, session_url + '&method=system.action.write_memory')
         if axapi_failure(write_result):
             module.fail_json(msg="failed to save the configuration: %s" % write_result['response']['err']['msg'])

@@ -23,7 +23,7 @@ DOCUMENTATION = '''
 ---
 module: lxd_container
 short_description: Manage LXD Containers
-version_added: 2.2.0
+version_added: "2.2"
 description:
   - Management of LXD containers
 author: "Hiroaki Nakamura (@hnakamur)"
@@ -246,7 +246,7 @@ actions:
 '''
 
 import os
-from ansible.modules.extras.cloud.lxd import LXDClient, LXDClientException
+from ansible.module_utils.lxd import LXDClient, LXDClientException
 
 # LXD_ANSIBLE_STATES is a map of states that contain values of methods used
 # when a particular state is evoked.
@@ -364,7 +364,7 @@ class LXDContainerManagement(object):
         self.actions.append('restart')
 
     def _delete_container(self):
-        return self.client.do('DELETE', '/1.0/containers/{0}'.format(self.name))
+        self.client.do('DELETE', '/1.0/containers/{0}'.format(self.name))
         self.actions.append('delete')
 
     def _freeze_container(self):
@@ -446,7 +446,8 @@ class LXDContainerManagement(object):
         if self.old_state != 'absent':
             if self.old_state == 'frozen':
                 self._unfreeze_container()
-            self._stop_container()
+            if self.old_state != 'stopped':
+                self._stop_container()
             self._delete_container()
 
     def _frozen(self):

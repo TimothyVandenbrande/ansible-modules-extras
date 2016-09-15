@@ -62,7 +62,7 @@ options:
     default: "Ansible"
   icon_url:
     description:
-      - Url for the message sender's icon (default C(http://www.ansible.com/favicon.ico))
+      - Url for the message sender's icon (default C(https://www.ansible.com/favicon.ico))
     required: false
   icon_emoji:
     description:
@@ -171,7 +171,8 @@ def build_payload_for_slack(module, text, channel, username, icon_url, icon_emoj
     if color == "normal" and text is not None:
         payload = dict(text=text)
     elif text is not None:
-        payload = dict(attachments=[dict(text=text, color=color)])
+        # With a custom color we have to set the message as attachment, and explicitely turn markdown parsing on for it.
+        payload = dict(attachments=[dict(text=text, color=color, mrkdwn_in=["text"])])
     if channel is not None:
         if (channel[0] == '#') or (channel[0] == '@'):
             payload['channel'] = channel
@@ -223,7 +224,7 @@ def main():
             msg         = dict(type='str', required=False, default=None),
             channel     = dict(type='str', default=None),
             username    = dict(type='str', default='Ansible'),
-            icon_url    = dict(type='str', default='http://www.ansible.com/favicon.ico'),
+            icon_url    = dict(type='str', default='https://www.ansible.com/favicon.ico'),
             icon_emoji  = dict(type='str', default=None),
             link_names  = dict(type='int', default=1, choices=[0,1]),
             parse       = dict(type='str', default=None, choices=['none', 'full']),

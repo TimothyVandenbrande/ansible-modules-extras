@@ -23,7 +23,7 @@ DOCUMENTATION = '''
 ---
 module: lxd_profile
 short_description: Manage LXD profiles
-version_added: 2.2.0
+version_added: "2.2"
 description:
   - Management of LXD profiles
 author: "Hiroaki Nakamura (@hnakamur)"
@@ -172,7 +172,7 @@ actions:
 '''
 
 import os
-from ansible.modules.extras.cloud.lxd import LXDClient, LXDClientException
+from ansible.module_utils.lxd import LXDClient, LXDClientException
 
 # PROFILE_STATES is a list for states supported
 PROFILES_STATES = [

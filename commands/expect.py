@@ -167,7 +167,6 @@ def main():
                 cmd=args,
                 stdout="skipped, since %s exists" % v,
                 changed=False,
-                stderr=False,
                 rc=0
             )
 
@@ -181,7 +180,6 @@ def main():
                 cmd=args,
                 stdout="skipped, since %s does not exist" % v,
                 changed=False,
-                stderr=False,
                 rc=0
             )
 
@@ -214,7 +212,7 @@ def main():
     if out is None:
         out = ''
 
-    module.exit_json(
+    ret = dict(
         cmd=args,
         stdout=out.rstrip('\r\n'),
         rc=rc,
@@ -223,6 +221,12 @@ def main():
         delta=str(delta),
         changed=True,
     )
+
+    if rc is not None:
+        module.exit_json(**ret)
+    else:
+        ret['msg'] = 'command exceeded timeout'
+        module.fail_json(**ret)
 
 # import module snippets
 from ansible.module_utils.basic import *
