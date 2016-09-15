@@ -75,6 +75,8 @@ function getFirewallRule ($fwsettings) {
                             $donothing=$false
                         } elseif (($fwsetting.Key -eq 'DisplayName') -and ($output."Rule Name" -eq $fwsettings.$($fwsetting.Key))) {
                             $donothing=$false
+                        } elseif (($fwsetting.Key -eq 'Profiles') -and ($output.$($fwsetting.Key) -eq "Domain,Private,Public") -and ($fwsettings.$($fwsetting.Key) -eq "any")) {
+                            $donothing=$false
                         } else {
                             $diff=$true;
                             $difference+=@($fwsettings.$($fwsetting.Key));
